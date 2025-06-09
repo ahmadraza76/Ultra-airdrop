@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: jhoom-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: REDIS_URL
+        value: redis://redis:6379/0
+      - key: CELERY_BROKER_URL
+        value: redis://redis:6379/0
+      - key: CELERY_RESULT_BACKEND
+        value: redis://redis:6379/0
+      - key: BOT_TOKEN
+        sync: false
+      - key: NOTIFY_BOT_TOKEN
+        sync: false
+      - key: GOOGLE_SHEET_KEY
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: TELEGRAM_CHANNEL
+        sync: false
+      - key: TELEGRAM_GROUP
+        sync: false
+      - key: BASE_URL
+        sync: false
+  - type: web
+    name: jhoom-captcha
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 4 -b 0.0.0.0:8001 captcha_server:app
+    envVars:
+      - key: REDIS_URL
+        value: redis://redis:6379/0
+      - key: BASE_URL
+        sync: false
+  - type: worker
+    name: jhoom-worker
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A bot.celery worker --loglevel=info
+    envVars:
+      - key: REDIS_URL
+        value: redis://redis:6379/0
+      - key: CELERY_BROKER_URL
+        value: redis://redis:6379/0
+      - key: CELERY_RESULT_BACKEND
+        value: redis://redis:6379/0
+  - type: redis
+    name: redis
+    ipAllowList: []
