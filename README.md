@@ -1,4 +1,4 @@
-#Altra Airdrop Bot
+JHOOM Airdrop Bot
 A hybrid Telegram bot for managing airdrop campaigns with an off-chain points system, manual withdrawals, guided onboarding, and comprehensive documentation.
 Setup
 
