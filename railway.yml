@@ -1,0 +1,29 @@
+services:
+  bot:
+    image: python:3.11-slim
+    command: python bot.py
+    env:
+      PORT: 8000
+      REDIS_URL: ${REDIS_URL}
+      CELERY_BROKER_URL: ${REDIS_URL}
+      CELERY_RESULT_BACKEND: ${REDIS_URL}
+    volumes:
+      - .:/app
+  captcha:
+    image: python:3.11-slim
+    command: gunicorn -w 4 -b 0.0.0.0:8001 captcha_server:app
+    env:
+      PORT: 8001
+      REDIS_URL: ${REDIS_URL}
+    volumes:
+      - .:/app
+  worker:
+    image: python:3.11-slim
+    command: celery -A bot.celery worker --loglevel=info
+    env:
+      CELERY_BROKER_URL: ${REDIS_URL}
+      CELERY_RESULT_BACKEND: ${REDIS_URL}
+    volumes:
+      - .:/app
+  redis:
+    image: redis:7.0
