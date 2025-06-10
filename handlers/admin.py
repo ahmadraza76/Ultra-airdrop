@@ -12,20 +12,31 @@ def get_admin_menu():
         [InlineKeyboardButton("Pause/Unpause Airdrop", callback_data="admin_pause")],
         [InlineKeyboardButton("Export Users", callback_data="admin_export")],
         [InlineKeyboardButton("View Logs", callback_data="admin_logs")],
+        [InlineKeyboardButton("Back to Menu", callback_data="back")],
     ]
     return InlineKeyboardMarkup(keyboard)
+
+def get_main_menu():
+    from handlers.callback import get_main_menu as get_main
+    return get_main()
 
 async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id in ADMIN_IDS:
         await update.message.reply_text(
-            "Welcome to the Admin Panel!", reply_markup=get_admin_menu()
+            "🔧 Welcome to the Admin Panel!", reply_markup=get_admin_menu()
         )
     else:
-        with open("assets/error_icon.png", "rb") as f:
-            await update.message.reply_photo(
-                photo=f,
-                caption="Unauthorized access.",
+        try:
+            with open("assets/error_icon.png", "rb") as f:
+                await update.message.reply_photo(
+                    photo=f,
+                    caption="⚠️ Unauthorized access.",
+                    reply_markup=get_main_menu(),
+                )
+        except FileNotFoundError:
+            await update.message.reply_text(
+                "⚠️ Unauthorized access.",
                 reply_markup=get_main_menu(),
             )
 
@@ -35,10 +46,16 @@ async def handle_admin_callback(update: Update, context: ContextTypes.DEFAULT_TY
     user_id = query.from_user.id
 
     if user_id not in ADMIN_IDS:
-        with open("assets/error_icon.png", "rb") as f:
-            await query.message.reply_photo(
-                photo=f,
-                caption="Unauthorized access.",
+        try:
+            with open("assets/error_icon.png", "rb") as f:
+                await query.message.reply_photo(
+                    photo=f,
+                    caption="⚠️ Unauthorized access.",
+                    reply_markup=get_admin_menu(),
+                )
+        except FileNotFoundError:
+            await query.message.reply_text(
+                "⚠️ Unauthorized access.",
                 reply_markup=get_admin_menu(),
             )
         return
@@ -50,36 +67,59 @@ async def handle_admin_callback(update: Update, context: ContextTypes.DEFAULT_TY
             withdrawals = session.query(Withdrawal).filter_by(status="Pending").count()
             total_points = sum(user.points for user in users)
             await query.message.reply_text(
-                f"📊 Bot Stats:\nTotal Users: {len(users)}\nPending Withdrawals: {withdrawals}\nTotal JHOOM Points: {total_points}",
+                f"📊 *Bot Statistics:*\n\n"
+                f"👥 Total Users: {len(users)}\n"
+                f"⏳ Pending Withdrawals: {withdrawals}\n"
+                f"💰 Total JHOOM Points: {total_points:.2f}\n"
+                f"✅ Active Users: {len([u for u in users if u.wallet])}\n"
+                f"📈 Users with Points: {len([u for u in users if u.points > 0])}",
+                parse_mode="Markdown",
                 reply_markup=get_admin_menu(),
             )
         elif data == "admin_broadcast":
             context.user_data["state"] = "broadcast"
             await query.message.reply_text(
+                "📢 *Broadcast Message*\n\n"
                 "Enter the message to broadcast to all users (max 4096 characters):",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back to Menu", callback_data="back")]])
+                parse_mode="Markdown",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Cancel", callback_data="admin_stats")]])
             )
         elif data == "admin_pause":
             context.bot_data["paused"] = not context.bot_data.get("paused", False)
-            status = "paused" if context.bot_data["paused"] else "unpaused"
+            status = "⏸️ PAUSED" if context.bot_data["paused"] else "▶️ ACTIVE"
             await query.message.reply_text(
-                f"Airdrop {status}!", reply_markup=get_admin_menu()
+                f"🔄 Airdrop status changed to: {status}",
+                reply_markup=get_admin_menu()
             )
         elif data == "admin_export":
-            filename = export_users()
-            await context.bot.send_document(
-                chat_id=user_id,
-                document=open(filename, "rb"),
-                caption="Exported user data (Excel)",
-                reply_markup=get_admin_menu(),
-            )
+            try:
+                filename = export_users()
+                with open(filename, "rb") as f:
+                    await context.bot.send_document(
+                        chat_id=user_id,
+                        document=f,
+                        caption="📊 Exported user data (Excel format)",
+                        reply_markup=get_admin_menu(),
+                    )
+            except Exception as e:
+                await query.message.reply_text(
+                    f"⚠️ Error exporting users: {str(e)}",
+                    reply_markup=get_admin_menu(),
+                )
         elif data == "admin_logs":
-            logs = session.query(ActivityLog).order_by(ActivityLog.timestamp.desc()).limit(50).all()
-            log_text = "\n".join([f"{log.timestamp}: {log.action} by {log.telegram_id} - {log.details}" for log in logs])
-            await query.message.reply_text(
-                f"📜 Recent Activity Logs:\n{log_text or 'No logs available.'}",
-                reply_markup=get_admin_menu(),
-            )
+            logs = session.query(ActivityLog).order_by(ActivityLog.timestamp.desc()).limit(20).all()
+            if logs:
+                log_text = "\n".join([f"🕐 {log.timestamp.strftime('%Y-%m-%d %H:%M')}: {log.action} by {log.telegram_id}" for log in logs])
+                await query.message.reply_text(
+                    f"📜 *Recent Activity Logs:*\n\n{log_text}",
+                    parse_mode="Markdown",
+                    reply_markup=get_admin_menu(),
+                )
+            else:
+                await query.message.reply_text(
+                    "📜 No activity logs available.",
+                    reply_markup=get_admin_menu(),
+                )
 
 async def handle_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -88,10 +128,16 @@ async def handle_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     message = update.message.text
     if len(message) > 4096:
-        with open("assets/error_icon.png", "rb") as f:
-            await update.message.reply_photo(
-                photo=f,
-                caption="Message too long! Please keep it under 4096 characters.",
+        try:
+            with open("assets/error_icon.png", "rb") as f:
+                await update.message.reply_photo(
+                    photo=f,
+                    caption="⚠️ Message too long! Please keep it under 4096 characters.",
+                    reply_markup=get_admin_menu(),
+                )
+        except FileNotFoundError:
+            await update.message.reply_text(
+                "⚠️ Message too long! Please keep it under 4096 characters.",
                 reply_markup=get_admin_menu(),
             )
         return
@@ -104,5 +150,6 @@ async def handle_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
         session.add(ActivityLog(telegram_id=user_id, action="broadcast", details=f"Sent: {message[:50]}..."))
         session.commit()
     await update.message.reply_text(
-        "Broadcast queued for all users!", reply_markup=get_admin_menu()
+        f"📢 Broadcast queued for {len(user_ids)} users!",
+        reply_markup=get_admin_menu()
     )

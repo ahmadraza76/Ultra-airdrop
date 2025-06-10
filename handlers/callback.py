@@ -54,10 +54,16 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
 
     if context.bot_data.get("paused", False) and not query.data.startswith("admin_"):
-        with open("assets/error_icon.png", "rb") as f:
-            await query.message.reply_photo(
-                photo=f,
-                caption="The airdrop is currently paused. Please try again later.",
+        try:
+            with open("assets/error_icon.png", "rb") as f:
+                await query.message.reply_photo(
+                    photo=f,
+                    caption="The airdrop is currently paused. Please try again later.",
+                    reply_markup=get_back_button(),
+                )
+        except FileNotFoundError:
+            await query.message.reply_text(
+                "⚠️ The airdrop is currently paused. Please try again later.",
                 reply_markup=get_back_button(),
             )
         return
@@ -65,10 +71,16 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     with Session() as session:
         user = session.query(User).filter_by(telegram_id=user_id).first()
         if not user:
-            with open("assets/error_icon.png", "rb") as f:
-                await query.message.reply_photo(
-                    photo=f,
-                    caption="Please start the bot with /start",
+            try:
+                with open("assets/error_icon.png", "rb") as f:
+                    await query.message.reply_photo(
+                        photo=f,
+                        caption="Please start the bot with /start",
+                        reply_markup=get_back_button(),
+                    )
+            except FileNotFoundError:
+                await query.message.reply_text(
+                    "⚠️ Please start the bot with /start",
                     reply_markup=get_back_button(),
                 )
             return
@@ -76,10 +88,16 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = query.data
         if data == "join_airdrop":
             if user.wallet:
-                with open("assets/error_icon.png", "rb") as f:
-                    await query.message.reply_photo(
-                        photo=f,
-                        caption="You have already joined the airdrop! Check tasks or balance.",
+                try:
+                    with open("assets/error_icon.png", "rb") as f:
+                        await query.message.reply_photo(
+                            photo=f,
+                            caption="You have already joined the airdrop! Check tasks or balance.",
+                            reply_markup=get_main_menu(),
+                        )
+                except FileNotFoundError:
+                    await query.message.reply_text(
+                        "✅ You have already joined the airdrop! Check tasks or balance.",
                         reply_markup=get_main_menu(),
                     )
             else:
@@ -89,46 +107,80 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     reply_markup=get_back_button(),
                 )
         elif data == "check_balance":
-            with open("assets/success_icon.png", "rb") as f:
-                await query.message.reply_photo(
-                    photo=f,
-                    caption=f"Your balance: *{user.points} JHOOM Points* 💰",
+            try:
+                with open("assets/success_icon.png", "rb") as f:
+                    await query.message.reply_photo(
+                        photo=f,
+                        caption=f"Your balance: *{user.points} JHOOM Points* 💰",
+                        parse_mode="Markdown",
+                        reply_markup=get_main_menu(),
+                    )
+            except FileNotFoundError:
+                await query.message.reply_text(
+                    f"💰 Your balance: *{user.points} JHOOM Points*",
                     parse_mode="Markdown",
                     reply_markup=get_main_menu(),
                 )
         elif data == "referral_link":
             link = f"https://t.me/{context.bot.username}?start={user_id}"
-            with open("assets/success_icon.png", "rb") as f:
-                await query.message.reply_photo(
-                    photo=f,
-                    caption=f"Your referral link: {link}\nInvite friends to earn 10 JHOOM Points per referral! 🚀",
+            try:
+                with open("assets/success_icon.png", "rb") as f:
+                    await query.message.reply_photo(
+                        photo=f,
+                        caption=f"Your referral link: {link}\nInvite friends to earn 10 JHOOM Points per referral! 🚀",
+                        reply_markup=get_main_menu(),
+                    )
+            except FileNotFoundError:
+                await query.message.reply_text(
+                    f"🚀 Your referral link: {link}\nInvite friends to earn 10 JHOOM Points per referral!",
                     reply_markup=get_main_menu(),
                 )
         elif data == "withdraw":
             if not rate_limit(user_id, "withdraw", limit=1, window=3600):
-                with open("assets/error_icon.png", "rb") as f:
-                    await query.message.reply_photo(
-                        photo=f,
-                        caption="You can only request a withdrawal once per hour. Try again later! ⏳",
+                try:
+                    with open("assets/error_icon.png", "rb") as f:
+                        await query.message.reply_photo(
+                            photo=f,
+                            caption="You can only request a withdrawal once per hour. Try again later! ⏳",
+                            reply_markup=get_main_menu(),
+                        )
+                except FileNotFoundError:
+                    await query.message.reply_text(
+                        "⏳ You can only request a withdrawal once per hour. Try again later!",
                         reply_markup=get_main_menu(),
                     )
                 return
             if user.points >= 100:
                 keyboard = [[InlineKeyboardButton("Request Withdrawal", callback_data="confirm_withdraw")]]
-                with open("assets/withdrawal_banner.jpg", "rb") as f:
-                    await query.message.reply_photo(
-                        photo=f,
-                        caption=f"You're eligible for withdrawal!\n\n"
-                                f"Wallet: {user.wallet}\n"
-                                f"Amount: {user.points} JHOOM Points\n\n"
-                                "Confirm your request:",
+                try:
+                    with open("assets/withdrawal_banner.jpg", "rb") as f:
+                        await query.message.reply_photo(
+                            photo=f,
+                            caption=f"You're eligible for withdrawal!\n\n"
+                                    f"Wallet: {user.wallet}\n"
+                                    f"Amount: {user.points} JHOOM Points\n\n"
+                                    "Confirm your request:",
+                            reply_markup=InlineKeyboardMarkup(keyboard),
+                        )
+                except FileNotFoundError:
+                    await query.message.reply_text(
+                        f"✅ You're eligible for withdrawal!\n\n"
+                        f"Wallet: {user.wallet}\n"
+                        f"Amount: {user.points} JHOOM Points\n\n"
+                        "Confirm your request:",
                         reply_markup=InlineKeyboardMarkup(keyboard),
                     )
             else:
-                with open("assets/error_icon.png", "rb") as f:
-                    await query.message.reply_photo(
-                        photo=f,
-                        caption="You need at least 100 JHOOM Points to withdraw. Keep earning! 💪",
+                try:
+                    with open("assets/error_icon.png", "rb") as f:
+                        await query.message.reply_photo(
+                            photo=f,
+                            caption="You need at least 100 JHOOM Points to withdraw. Keep earning! 💪",
+                            reply_markup=get_main_menu(),
+                        )
+                except FileNotFoundError:
+                    await query.message.reply_text(
+                        "💪 You need at least 100 JHOOM Points to withdraw. Keep earning!",
                         reply_markup=get_main_menu(),
                     )
         elif data == "confirm_withdraw":
@@ -142,18 +194,30 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             session.add(ActivityLog(telegram_id=user_id, action="withdraw_request", details=f"Requested {withdrawal.amount} JHOOM Points"))
             session.commit()
             save_withdrawal(user_id, user.wallet, withdrawal.amount, withdrawal.requested_at)
-            with open("assets/withdrawal_banner.jpg", "rb") as f:
-                await query.message.reply_photo(
-                    photo=f,
-                    caption="Your withdrawal request has been submitted. You'll receive your tokens within 24 hours. ✅",
+            try:
+                with open("assets/withdrawal_banner.jpg", "rb") as f:
+                    await query.message.reply_photo(
+                        photo=f,
+                        caption="Your withdrawal request has been submitted. You'll receive your tokens within 24 hours. ✅",
+                        reply_markup=get_main_menu(),
+                    )
+            except FileNotFoundError:
+                await query.message.reply_text(
+                    "✅ Your withdrawal request has been submitted. You'll receive your tokens within 24 hours.",
                     reply_markup=get_main_menu(),
                 )
         elif data == "bonus":
             if not rate_limit(user_id, "bonus", limit=1, window=3600):
-                with open("assets/error_icon.png", "rb") as f:
-                    await query.message.reply_photo(
-                        photo=f,
-                        caption="You can claim a bonus once per hour. Try again later! ⏳",
+                try:
+                    with open("assets/error_icon.png", "rb") as f:
+                        await query.message.reply_photo(
+                            photo=f,
+                            caption="You can claim a bonus once per hour. Try again later! ⏳",
+                            reply_markup=get_main_menu(),
+                        )
+                except FileNotFoundError:
+                    await query.message.reply_text(
+                        "⏳ You can claim a bonus once per hour. Try again later!",
                         reply_markup=get_main_menu(),
                     )
                 return
@@ -163,17 +227,29 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 user.points += bonus
                 session.add(ActivityLog(telegram_id=user_id, action="bonus", details=f"Earned {bonus} JHOOM Points"))
                 session.commit()
-                with open("assets/success_icon.png", "rb") as f:
-                    await query.message.reply_photo(
-                        photo=f,
-                        caption=f"Congratulations! You earned a bonus of {bonus} JHOOM Points! 🎁",
+                try:
+                    with open("assets/success_icon.png", "rb") as f:
+                        await query.message.reply_photo(
+                            photo=f,
+                            caption=f"Congratulations! You earned a bonus of {bonus} JHOOM Points! 🎁",
+                            reply_markup=get_main_menu(),
+                        )
+                except FileNotFoundError:
+                    await query.message.reply_text(
+                        f"🎁 Congratulations! You earned a bonus of {bonus} JHOOM Points!",
                         reply_markup=get_main_menu(),
                     )
             else:
-                with open("assets/error_icon.png", "rb") as f:
-                    await query.message.reply_photo(
-                        photo=f,
-                        caption="No bonus this time. Try again later! 😊",
+                try:
+                    with open("assets/error_icon.png", "rb") as f:
+                        await query.message.reply_photo(
+                            photo=f,
+                            caption="No bonus this time. Try again later! 😊",
+                            reply_markup=get_main_menu(),
+                        )
+                except FileNotFoundError:
+                    await query.message.reply_text(
+                        "😊 No bonus this time. Try again later!",
                         reply_markup=get_main_menu(),
                     )
         elif data == "task_list":
@@ -189,20 +265,33 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             progress = f"Progress: {len(user.tasks_completed)} of {len(TASKS)} tasks completed"
             keyboard = [[InlineKeyboardButton(f"Complete Task {i+1}", callback_data=f"complete_task_{i}")] for i in range(2, len(TASKS))]
             keyboard.append([InlineKeyboardButton("Back to Menu", callback_data="back")])
-            with open("assets/tasks_banner.jpg", "rb") as f:
-                await query.message.reply_photo(
-                    photo=f,
-                    caption=f"📋 Airdrop Tasks:\n{task_list}\n\n{progress}\n\nSelect a task to mark as completed (Telegram tasks are auto-verified):",
+            try:
+                with open("assets/tasks_banner.jpg", "rb") as f:
+                    await query.message.reply_photo(
+                        photo=f,
+                        caption=f"📋 Airdrop Tasks:\n{task_list}\n\n{progress}\n\nSelect a task to mark as completed (Telegram tasks are auto-verified):",
+                        parse_mode="Markdown",
+                        reply_markup=InlineKeyboardMarkup(keyboard),
+                    )
+            except FileNotFoundError:
+                await query.message.reply_text(
+                    f"📋 Airdrop Tasks:\n{task_list}\n\n{progress}\n\nSelect a task to mark as completed (Telegram tasks are auto-verified):",
                     parse_mode="Markdown",
                     reply_markup=InlineKeyboardMarkup(keyboard),
                 )
         elif data.startswith("complete_task_"):
             task_idx = int(data.split("_")[-1])
             if task_idx < 2:
-                with open("assets/error_icon.png", "rb") as f:
-                    await query.message.reply_photo(
-                        photo=f,
-                        caption="Telegram tasks are auto-verified. Please join the channel/group.",
+                try:
+                    with open("assets/error_icon.png", "rb") as f:
+                        await query.message.reply_photo(
+                            photo=f,
+                            caption="Telegram tasks are auto-verified. Please join the channel/group.",
+                            reply_markup=get_main_menu(),
+                        )
+                except FileNotFoundError:
+                    await query.message.reply_text(
+                        "⚠️ Telegram tasks are auto-verified. Please join the channel/group.",
                         reply_markup=get_main_menu(),
                     )
                 return
@@ -211,17 +300,29 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 user.points += 10
                 session.add(ActivityLog(telegram_id=user_id, action="task_completed", details=f"Task: {TASKS[task_idx]['description']}"))
                 session.commit()
-                with open("assets/success_icon.png", "rb") as f:
-                    await query.message.reply_photo(
-                        photo=f,
-                        caption=f"Task '{TASKS[task_idx]['description']}' marked as completed! +10 JHOOM Points. 🎉",
+                try:
+                    with open("assets/success_icon.png", "rb") as f:
+                        await query.message.reply_photo(
+                            photo=f,
+                            caption=f"Task '{TASKS[task_idx]['description']}' marked as completed! +10 JHOOM Points. 🎉",
+                            reply_markup=get_main_menu(),
+                        )
+                except FileNotFoundError:
+                    await query.message.reply_text(
+                        f"🎉 Task '{TASKS[task_idx]['description']}' marked as completed! +10 JHOOM Points.",
                         reply_markup=get_main_menu(),
                     )
             else:
-                with open("assets/error_icon.png", "rb") as f:
-                    query.message.reply_photo(
-                        photo=f,
-                        caption="This task is already completed! Choose another.",
+                try:
+                    with open("assets/error_icon.png", "rb") as f:
+                        await query.message.reply_photo(
+                            photo=f,
+                            caption="This task is already completed! Choose another.",
+                            reply_markup=get_main_menu(),
+                        )
+                except FileNotFoundError:
+                    await query.message.reply_text(
+                        "⚠️ This task is already completed! Choose another.",
                         reply_markup=get_main_menu(),
                     )
         elif data == "faq":
