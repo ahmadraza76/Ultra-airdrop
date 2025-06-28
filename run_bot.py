@@ -39,11 +39,21 @@ def print_banner():
 
 def check_python_version():
     """Check if Python version is compatible"""
-    if sys.version_info < (3, 11):
-        logger.error("❌ Python 3.11+ is required. Current version: %s", sys.version)
+    if sys.version_info < (3, 8):
+        logger.error("❌ Python 3.8+ is required. Current version: %s", sys.version)
         return False
     logger.info("✅ Python version: %s", sys.version.split()[0])
     return True
+
+def check_virtual_env():
+    """Check if running in virtual environment"""
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        logger.info("✅ Running in virtual environment")
+        return True
+    else:
+        logger.warning("⚠️  Not running in virtual environment")
+        logger.info("💡 Consider using: source venv/bin/activate")
+        return False
 
 def check_redis():
     """Check if Redis is running"""
@@ -149,8 +159,22 @@ def setup_environment():
 def validate_config():
     """Validate configuration"""
     try:
-        from config import validate_config
-        return validate_config()
+        # Try to import config module
+        import importlib.util
+        config_path = "config.py"
+        if os.path.exists(config_path):
+            spec = importlib.util.spec_from_file_location("config", config_path)
+            config = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(config)
+            
+            if hasattr(config, 'validate_config'):
+                return config.validate_config()
+            else:
+                logger.info("✅ Config module loaded (no validation function)")
+                return True
+        else:
+            logger.warning("⚠️  config.py not found, using default configuration")
+            return True
     except ImportError:
         logger.error("❌ Cannot import config module")
         return False
@@ -178,6 +202,9 @@ def main():
     # Check Python version
     if not check_python_version():
         sys.exit(1)
+    
+    # Check virtual environment
+    check_virtual_env()
     
     # Check and install requirements
     if not check_requirements():
@@ -222,6 +249,7 @@ def main():
     except ImportError as e:
         logger.error("❌ Import error: %s", e)
         logger.error("🔧 Please ensure all dependencies are installed: pip install -r requirements.txt")
+        logger.info("💡 Try running: npm run install")
         sys.exit(1)
     except Exception as e:
         logger.error("❌ Bot error: %s", e)
