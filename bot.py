@@ -11,6 +11,11 @@ from database.db import init_db
 from config import BOT_TOKEN, validate_config
 from celery import Celery
 
+# Create necessary directories first
+os.makedirs("logs", exist_ok=True)
+os.makedirs("assets", exist_ok=True)
+os.makedirs("assets/captcha_images", exist_ok=True)
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -59,11 +64,6 @@ def main():
     # Validate configuration
     if not validate_config():
         sys.exit(1)
-    
-    # Create necessary directories
-    os.makedirs("logs", exist_ok=True)
-    os.makedirs("assets", exist_ok=True)
-    os.makedirs("assets/captcha_images", exist_ok=True)
     
     # Initialize database
     try:

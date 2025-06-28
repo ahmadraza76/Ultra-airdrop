@@ -7,9 +7,13 @@ services:
     volumes:
       - .:/app
       - ./airdrop.db:/app/airdrop.db
-      - ./bot.log:/app/bot.log
+      - ./logs:/app/logs
       - ./users.xlsx:/app/users.xlsx
     restart: unless-stopped
+    depends_on:
+      - redis
   redis:
     image: redis:7.0
     restart: unless-stopped
+    ports:
+      - "6379:6379"
