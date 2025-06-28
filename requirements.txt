@@ -12,3 +12,7 @@ celery==5.4.0
 flask==3.0.3
 flask-limiter==3.8.0
 gunicorn==23.0.0
+Pillow==10.4.0
+qrcode==7.4.2
+requests==2.31.0
+captcha==0.5.0

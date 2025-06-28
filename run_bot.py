@@ -55,6 +55,34 @@ def check_virtual_env():
         logger.info("💡 Consider using: source venv/bin/activate")
         return False
 
+def get_pip_command():
+    """Get the correct pip command for the current Python environment"""
+    # Try different pip commands in order of preference
+    pip_commands = [
+        [sys.executable, "-m", "pip"],  # Most reliable
+        ["pip3"],
+        ["pip"],
+        ["python3", "-m", "pip"],
+        ["python", "-m", "pip"]
+    ]
+    
+    for cmd in pip_commands:
+        try:
+            result = subprocess.run(
+                cmd + ["--version"], 
+                capture_output=True, 
+                text=True, 
+                timeout=10
+            )
+            if result.returncode == 0:
+                logger.info("✅ Using pip command: %s", " ".join(cmd))
+                return cmd
+        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.SubprocessError):
+            continue
+    
+    logger.error("❌ No working pip command found")
+    return None
+
 def check_redis():
     """Check if Redis is running"""
     try:
@@ -96,15 +124,34 @@ def install_requirements():
         logger.error("❌ requirements.txt not found")
         return False
     
+    pip_cmd = get_pip_command()
+    if not pip_cmd:
+        logger.error("❌ Cannot find pip command")
+        return False
+    
     try:
         logger.info("📦 Installing Python dependencies...")
-        subprocess.check_call([
-            sys.executable, "-m", "pip", "install", "-r", requirements_file
-        ], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        logger.info("✅ Dependencies installed successfully")
-        return True
-    except subprocess.CalledProcessError as e:
-        logger.error("❌ Failed to install requirements: %s", e.stderr.decode())
+        result = subprocess.run(
+            pip_cmd + ["install", "-r", requirements_file],
+            capture_output=True,
+            text=True,
+            timeout=300  # 5 minutes timeout
+        )
+        
+        if result.returncode == 0:
+            logger.info("✅ Dependencies installed successfully")
+            return True
+        else:
+            logger.error("❌ Failed to install requirements:")
+            logger.error("STDOUT: %s", result.stdout)
+            logger.error("STDERR: %s", result.stderr)
+            return False
+            
+    except subprocess.TimeoutExpired:
+        logger.error("❌ Installation timed out")
+        return False
+    except Exception as e:
+        logger.error("❌ Failed to install requirements: %s", e)
         return False
 
 def check_requirements():
@@ -116,7 +163,11 @@ def check_requirements():
         'gspread',
         'celery',
         'flask',
-        'dotenv'
+        'dotenv',
+        'PIL',  # Pillow
+        'qrcode',
+        'requests',
+        'captcha'
     ]
     
     missing_modules = []
@@ -195,6 +246,44 @@ def create_dummy_assets():
         except Exception as e:
             logger.warning("⚠️  Error creating dummy assets: %s", e)
 
+def test_captcha():
+    """Test CAPTCHA functionality"""
+    try:
+        logger.info("🧪 Testing CAPTCHA functionality...")
+        from PIL import Image, ImageDraw, ImageFont
+        import random
+        import string
+        
+        # Create a simple test CAPTCHA
+        width, height = 200, 80
+        image = Image.new('RGB', (width, height), color='white')
+        draw = ImageDraw.Draw(image)
+        
+        # Generate random text
+        text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
+        
+        # Try to draw text (with fallback if font not available)
+        try:
+            font = ImageFont.truetype("arial.ttf", 36)
+        except:
+            font = ImageFont.load_default()
+        
+        draw.text((50, 25), text, fill='black', font=font)
+        
+        # Save test image
+        test_path = "assets/captcha_images/test_captcha.png"
+        image.save(test_path)
+        
+        logger.info("✅ CAPTCHA test successful - saved to %s", test_path)
+        return True
+        
+    except ImportError as e:
+        logger.error("❌ CAPTCHA test failed - missing module: %s", e)
+        return False
+    except Exception as e:
+        logger.error("❌ CAPTCHA test failed: %s", e)
+        return False
+
 def main():
     """Main function to run the bot"""
     print_banner()
@@ -210,7 +299,11 @@ def main():
     if not check_requirements():
         logger.info("📦 Installing missing dependencies...")
         if not install_requirements():
-            logger.error("❌ Failed to install dependencies. Please run: pip install -r requirements.txt")
+            logger.error("❌ Failed to install dependencies.")
+            logger.info("💡 Try running manually:")
+            logger.info("   python -m pip install -r requirements.txt")
+            logger.info("   or")
+            logger.info("   pip install -r requirements.txt")
             sys.exit(1)
     
     # Setup environment
@@ -222,6 +315,9 @@ def main():
     if not validate_config():
         logger.error("❌ Configuration validation failed. Please check your .env file")
         sys.exit(1)
+    
+    # Test CAPTCHA functionality
+    test_captcha()
     
     # Check Redis (optional but recommended)
     if not check_redis():
@@ -248,8 +344,8 @@ def main():
         logger.info("💾 All data has been saved")
     except ImportError as e:
         logger.error("❌ Import error: %s", e)
-        logger.error("🔧 Please ensure all dependencies are installed: pip install -r requirements.txt")
-        logger.info("💡 Try running: npm run install")
+        logger.error("🔧 Please ensure all dependencies are installed")
+        logger.info("💡 Try running the installation again")
         sys.exit(1)
     except Exception as e:
         logger.error("❌ Bot error: %s", e)
