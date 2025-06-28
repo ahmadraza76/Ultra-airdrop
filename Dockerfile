@@ -1,4 +1,4 @@
-FROM python:3.11-buster
+FROM python:3.11-slim-buster
 
 WORKDIR /app
 
@@ -15,7 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Create logs directory to prevent FileNotFoundError
+# Create logs and data directories to prevent FileNotFoundError
 RUN mkdir -p logs
+RUN mkdir -p /app/data
 
 CMD ["python", "bot.py"]

@@ -6,7 +6,7 @@ services:
       - .env
     volumes:
       - .:/app
-      - ./airdrop.db:/app/airdrop.db
+      - ./data:/app/data
       - ./logs:/app/logs
       - ./users.xlsx:/app/users.xlsx
     restart: unless-stopped

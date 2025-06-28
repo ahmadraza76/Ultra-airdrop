@@ -3,7 +3,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
-engine = create_engine("sqlite:///airdrop.db", echo=False)
+engine = create_engine("sqlite:///data/airdrop.db", echo=False)
 Session = sessionmaker(bind=engine)
 
 def init_db():
