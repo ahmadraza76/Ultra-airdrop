@@ -1,4 +1,4 @@
-FROM python:3.11-slim-buster
+FROM python:3.11-buster
 
 WORKDIR /app
 
@@ -18,5 +18,6 @@ COPY . .
 # Create logs and data directories to prevent FileNotFoundError
 RUN mkdir -p logs
 RUN mkdir -p /app/data
+RUN chmod -R 777 /app/data
 
 CMD ["python", "bot.py"]
