@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 from handlers.start import start
@@ -7,13 +8,17 @@ from handlers.message import handle_message
 from handlers.callback import button_callback
 from handlers.admin import admin, handle_admin_callback, handle_broadcast
 from database.db import init_db
-from config import BOT_TOKEN
+from config import BOT_TOKEN, validate_config
 from celery import Celery
 
+# Configure logging
 logging.basicConfig(
-    filename="bot.log",
+    level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
+    handlers=[
+        logging.FileHandler("logs/bot.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
 )
 logger = logging.getLogger(__name__)
 
@@ -35,22 +40,43 @@ async def error_handler(update, context):
     logger.error(f"Update {update} caused error {context.error}")
     if update and update.message:
         try:
-            with open("assets/error_icon.png", "rb") as f:
-                await update.message.reply_photo(
-                    photo=f,
-                    caption="An error occurred. Please try again or contact support.",
+            if os.path.exists("assets/error_icon.png"):
+                with open("assets/error_icon.png", "rb") as f:
+                    await update.message.reply_photo(
+                        photo=f,
+                        caption="An error occurred. Please try again or contact support.",
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back to Menu", callback_data="back")]])
+                    )
+            else:
+                await update.message.reply_text(
+                    "⚠️ An error occurred. Please try again or contact support.",
                     reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back to Menu", callback_data="back")]])
                 )
-        except FileNotFoundError:
-            await update.message.reply_text(
-                "⚠️ An error occurred. Please try again or contact support.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back to Menu", callback_data="back")]])
-            )
+        except Exception as e:
+            logger.error(f"Error in error handler: {e}")
 
 def main():
-    init_db()
+    # Validate configuration
+    if not validate_config():
+        sys.exit(1)
+    
+    # Create necessary directories
+    os.makedirs("logs", exist_ok=True)
+    os.makedirs("assets", exist_ok=True)
+    os.makedirs("assets/captcha_images", exist_ok=True)
+    
+    # Initialize database
+    try:
+        init_db()
+        logger.info("Database initialized successfully")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        sys.exit(1)
+    
+    # Create application
     app = Application.builder().token(BOT_TOKEN).build()
 
+    # Add handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("admin", admin))
     app.add_handler(CommandHandler("balance", lambda update, context: button_callback(update, context)))
@@ -59,6 +85,7 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_admin_callback, pattern="^admin_"))
     app.add_error_handler(error_handler)
 
+    logger.info("Bot started successfully")
     app.run_polling()
 
 if __name__ == "__main__":

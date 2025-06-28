@@ -3,15 +3,39 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-GOOGLE_SHEET_KEY = os.getenv("GOOGLE_SHEET_KEY")
-CREDENTIALS_FILE = os.getenv("CREDENTIALS_FILE")
-ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS").split(",")]
-TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL")
-TELEGRAM_GROUP = os.getenv("TELEGRAM_GROUP")
-REDIS_URL = os.getenv("REDIS_URL")
-NOTIFY_BOT_TOKEN = os.getenv("NOTIFY_BOT_TOKEN")
-BASE_URL = os.getenv("BASE_URL")
+# Required environment variables with defaults
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+GOOGLE_SHEET_KEY = os.getenv("GOOGLE_SHEET_KEY", "")
+CREDENTIALS_FILE = os.getenv("CREDENTIALS_FILE", "credentials.json")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+NOTIFY_BOT_TOKEN = os.getenv("NOTIFY_BOT_TOKEN", "")
+BASE_URL = os.getenv("BASE_URL", "https://localhost:8000")
+
+# Parse admin IDs safely
+admin_ids_str = os.getenv("ADMIN_IDS", "")
+ADMIN_IDS = []
+if admin_ids_str:
+    try:
+        ADMIN_IDS = [int(id.strip()) for id in admin_ids_str.split(",") if id.strip()]
+    except ValueError:
+        print("Warning: Invalid ADMIN_IDS format in .env file")
+
+TELEGRAM_CHANNEL = os.getenv("TELEGRAM_CHANNEL", "@your_channel")
+TELEGRAM_GROUP = os.getenv("TELEGRAM_GROUP", "@your_group")
+
+# Validate required configuration
+def validate_config():
+    missing = []
+    if not BOT_TOKEN:
+        missing.append("BOT_TOKEN")
+    if not ADMIN_IDS:
+        missing.append("ADMIN_IDS")
+    
+    if missing:
+        print(f"❌ Missing required configuration: {', '.join(missing)}")
+        print("Please check your .env file")
+        return False
+    return True
 
 TASKS = [
     {

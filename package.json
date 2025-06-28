@@ -1,0 +1,16 @@
+{
+  "name": "jhoom-airdrop-bot",
+  "version": "1.0.0",
+  "description": "JHOOM Airdrop Telegram Bot",
+  "main": "bot.py",
+  "scripts": {
+    "start": "python bot.py",
+    "dev": "python bot.py",
+    "test": "pytest",
+    "captcha": "python captcha_server.py",
+    "worker": "celery -A bot.celery worker --loglevel=info",
+    "setup": "python setup.py"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
