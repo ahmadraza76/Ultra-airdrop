@@ -15,6 +15,7 @@ from celery import Celery
 os.makedirs("logs", exist_ok=True)
 os.makedirs("assets", exist_ok=True)
 os.makedirs("assets/captcha_images", exist_ok=True)
+os.makedirs("data", exist_ok=True)
 
 # Configure logging
 logging.basicConfig(

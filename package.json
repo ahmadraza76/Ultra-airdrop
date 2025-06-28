@@ -11,7 +11,6 @@
     "captcha": "python captcha_server.py",
     "worker": "celery -A bot.celery worker --loglevel=info",
     "setup": "python setup.py",
-    "install": "python setup.py",
     "lint": "flake8 . --max-line-length=120",
     "format": "black .",
     "security": "bandit -r .",
