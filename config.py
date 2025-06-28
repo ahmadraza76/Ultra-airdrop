@@ -7,7 +7,7 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 GOOGLE_SHEET_KEY = os.getenv("GOOGLE_SHEET_KEY", "")
 CREDENTIALS_FILE = os.getenv("CREDENTIALS_FILE", "credentials.json")
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 NOTIFY_BOT_TOKEN = os.getenv("NOTIFY_BOT_TOKEN", "")
 BASE_URL = os.getenv("BASE_URL", "https://localhost:8000")
 
