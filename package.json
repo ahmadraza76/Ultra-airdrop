@@ -1,16 +1,68 @@
 {
   "name": "jhoom-airdrop-bot",
-  "version": "1.0.0",
-  "description": "JHOOM Airdrop Telegram Bot",
-  "main": "bot.py",
+  "version": "2.0.0",
+  "description": "🚀 Professional JHOOM Airdrop Telegram Bot with Advanced Features",
+  "main": "run_bot.py",
   "scripts": {
-    "start": "python bot.py",
-    "dev": "python bot.py",
+    "start": "python run_bot.py",
+    "dev": "python run_bot.py",
     "test": "pytest",
+    "test:coverage": "pytest --cov=. --cov-report=html",
     "captcha": "python captcha_server.py",
     "worker": "celery -A bot.celery worker --loglevel=info",
-    "setup": "python setup.py"
+    "setup": "python setup.py",
+    "install": "pip install -r requirements.txt",
+    "lint": "flake8 . --max-line-length=120",
+    "format": "black .",
+    "security": "bandit -r .",
+    "deploy:railway": "railway up",
+    "deploy:heroku": "git push heroku main",
+    "logs": "tail -f logs/bot.log"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "airdrop",
+    "cryptocurrency",
+    "python",
+    "redis",
+    "google-sheets",
+    "celery",
+    "captcha"
+  ],
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@domain.com",
+    "url": "https://yourwebsite.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/jhoom-airdrop-bot.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/jhoom-airdrop-bot/issues"
+  },
+  "homepage": "https://github.com/yourusername/jhoom-airdrop-bot#readme",
+  "engines": {
+    "python": ">=3.11.0"
   },
   "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {},
+  "python_dependencies": {
+    "python-telegram-bot": "20.7",
+    "gspread": "5.12.0",
+    "oauth2client": "4.1.3",
+    "python-dotenv": "1.0.1",
+    "SQLAlchemy": "2.0.35",
+    "redis": "5.0.8",
+    "pandas": "2.2.3",
+    "openpyxl": "3.1.5",
+    "pytest": "8.3.3",
+    "pytest-asyncio": "0.24.0",
+    "celery": "5.4.0",
+    "flask": "3.0.3",
+    "flask-limiter": "3.8.0",
+    "gunicorn": "23.0.0"
+  }
 }
